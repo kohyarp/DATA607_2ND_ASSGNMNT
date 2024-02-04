@@ -1,0 +1,204 @@
+---
+title: "DATA607 - 2nd Assignment"
+author: "Koohyar Pooladvand"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## What and Why
+
+In this assignment, we have been asked to choose 6 popular movies and rate them. We also have to ask at least five people to rate each of these movies on a scale of 1 to 5. Then, we have to store the ratings in a SQL database and load the information from the SQL database. The goal is to learn SQL and SQL queries, and how to work with them in R. SQL is a new language to me and I have never used it before. To start this, I have spent some time using the available resources like YouTube and books to learn a bit more about SQL. I will be using RMarkdown to create the report to be posted on RPub or GitHub. It is exciting to learn a new language, but it will also be overwhelming for me for the first time.
+
+```{r Intro, echo=TRUE}
+#summary(cars)
+#Welcome to thsi code,
+# Author: Koohyar Pooladvand
+#Date: 02/03/2024 
+# This is for the DTA607 2nd assignment using SQL 
+#For DATA607 CUNY SPS for 2nd Assignment working with SQL 
+print("This section of the code is an intro, this code is for DATA607 2nd assignment, working with SQL")
+
+```
+
+## Create SQL database
+
+I will be using SQLite and RSQLite packages to create the SQL database. Then, I will store this database in a local folder inside /Data fodler and later will call the database from to R to allow for change, those changes then will be stored into a new database.
+
+First, I will check if the required packages are installed. If not, I will install them
+
+I get the idea of how to check the packages from this link: [check for Packages](https://statisticsglobe.com/r-install-missing-packages-automatically#:~:text=Optionally%2C%20you%20could%20print%20the%20number%20of%20installed,packages%20were%20lacking%20and%20had%20to%20be%20installed.).
+
+## Code chunk for preperation
+
+```{r R_setup, echo=FALSE}
+#Load the required package and ensure they are installed
+#install.packages("RSQLite",repos='http://cran.us.r-project.org')
+#This code below check if the needed packages are isntalled or not and if not, will instal them. 
+
+required_packages <- c("RSQLite","devtools","tidyverse","DBI","dplyr","odbc") # Specify packages
+
+not_installed <- required_packages[!(required_packages %in% installed.packages()[ , "Package"])]    # Extract not installed packages
+if(length(not_installed)==0){
+  print("All required packages are installed")
+} else {
+  print(paste(length(not_installed), "package(s) had to be installed.")) # print the list of packages that need to be isntall            
+}
+#plot(pressure) #test
+
+#laod Libraries 
+library(RSQLite)
+library(DBI)
+library(devtools)
+library(dplyr)
+library(tidyverse)
+library(odbc)
+```
+
+## Inquiry summary
+
+The assignment asked for a minimum of 5 people and I gathered information from six different people. The following table summarizes the inquiry. I also added Baribe, which is not very recent, to ensure that at least one movie has been seen by everyone.
+
+| Name          | Mean Girls | Poor Things | Barbie | Aquaman and the Lost Kingdom | Godzilla Minus One | Night Swim |
+|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
+| Mom           | 3          | 4           | 3      |                              |                    |            |
+| Dad           |            | 2           | 4      |                              |                    |            |
+| Paul Steward  |            |             | 2      | 3                            |                    |            |
+| Mohit Bharaja | 2          |             | 1      | 1                            | 2                  |            |
+| Nicole Stage  | 3          | 5           | 5      |                              |                    | 1          |
+| Shawn Park    | 1          | 4           | 2      |                              | 4                  |            |
+
+: Six Movies Six People Inquiry
+
+The format of this data shown above is not appropriate for SQL, since in SQL we look for the variable and field. The above format needs to be written in the following way to be more useful for SQL inquiry.
+
+| Name       | Movie              | Rating |
+|------------|--------------------|--------|
+| Mom        | Mean Girls         | 3      |
+| Mom        | Poor Things        | 4      |
+| ...        | ...                | ...    |
+| Shawn Park | Godzilla Minus One | 4      |
+| Shawn Park | Night Swim         |        |
+
+: Preferred Databae format for SQL inquiry
+
+## Creating the database using RSQLite
+
+For creating the database, I used SQLite DB Browser. I used the “Six_Person_Six_Movie_Rating.csv” file to import the data. After importing the data, I saved the database with the same name for the following code to be imported. I was not able to use MySQL or pgAdmin to do this and I am still working to learn them.
+
+```{r Connect_2_DB, echo=FALSE}
+#let's first conenct to the database I want to created 
+#I will use dbConnect form DBI 
+db_rating <- DBI::dbConnect(RSQLite::SQLite(),
+                         dbname="Data/Rating_Survey_KP.db")
+
+#let's list the table 
+db_list <- dbListTables(db_rating)
+
+#let's see the filed in the table
+db_fileds <- dbListFields(db_rating,db_list)
+
+
+#lets pass thr data and exctract them form the table 
+#first lets connect to the specif atble of the db
+loaded_db <- tbl(db_rating,db_list)
+#not let's aod the data as a dataframe in R
+loaded_df <- collect(loaded_db)
+
+#write the inported data to a CSV file 
+write.csv(loaded_df, file= "Data/From_SQL_To_CSV.csv", row.names=TRUE)
+
+#new_db
+#DBI::dbListTables(new_db)
+
+#read CSV file to a dataframe named movie_rating
+movie_rating <- data.frame(read.csv(file = "Data/Six_Person_Six_Movie_Rating.csv", header=TRUE, sep = ","))
+
+#close the connection 
+dbDisconnect(db_rating)
+
+```
+
+Now that the data is loaded, one can use RStudio to alter the data in the loaded dataframe, add or remove data. When you are done, you may use the following code to write the new data to a new database.
+
+```{r save_new_file, echo=FALSE}
+
+#Open a new connenction to store a new file if needed
+new_conn <- DBI::dbConnect(RSQLite::SQLite(),
+                           dbname="Data/New_Rating_Survey_KP.db")
+#write the modified loaded_db to a new database 
+dbWriteTable(conn=new_conn,
+             name="Movie_Rating",
+             value = loaded_df,
+             overwrite=TRUE)
+#close the connection 
+dbDisconnect(new_conn)
+```
+
+## Handling missing data
+
+In this section of this code, I will focus on handling missing data. I will use the loaded_df to query some data.
+
+The first thing I would do is plot a bar chart of the average rating of movies.
+
+```{r plot_and_summarize, echo=FALSE}
+#change the rating from charcter to number to be able to use summarize
+loaded_df$Rating_num <- as.numeric(loaded_df$Rating)
+
+Rating_avg <- loaded_df|> group_by(Movie)|>summarize(movie_rating_mean = mean(Rating_num, na.rm = TRUE))
+
+br_plt <- barplot(Rating_avg$movie_rating_mean,
+                  names.arg = Rating_avg$Movie,
+                  main = "Movies Average Rating", 
+                  xlab = "",
+                  xaxt="n", #do not plot the the default labels
+                  ylab = "Average out of 5", 
+                  col = "blue",
+                  las = 2,
+                  ylim = c(0, 5),  # Set the y-axis limits from 0 to 5
+                  border = "black",  # Add black borders to the bars
+                  cex.names = 0.7,  # Adjust the size of the movie names
+                  space = 1  # Adjust the space between bars
+)
+
+# Add value labels on top of the bars
+text.default(x = br_plt, y = Rating_avg$movie_rating_mean + 0.1,
+             labels = round(Rating_avg$movie_rating_mean,2), pos = 3, cex = 0.8,
+             col = "blue")
+
+text.default(x = br_plt, y=-1, labels = Rating_avg$Movie, xpd=TRUE, pos=3, srt=20, col = "black", cex=0.75)
+par(las=2)
+
+
+```
+
+In this section of the code, I would like to test handling of the lack of data. Using summarize above I have shown a quick example, but in this section I will try to use SQL code. I have not learned it yet, and I do not trust my work.
+
+```{r hanling_data, echo=FALSE}
+
+# use the data, to see which movie has been seen the most. Report a table and sort movies up down. 
+sort_table <- loaded_df|> group_by(Movie)|>summarize(Movie_count=sum(!is.na(Rating)))
+sort_table [order(-sort_table$Movie_count),]
+#loaded_df %>% summarise_all(~ sum(is.na(.)))
+
+
+```
+
+Now that the data is modified, I use the same code above to store the modified file.
+
+```{r save_modified_file, echo=FALSE}
+#Open a new connenction to store a new file if needed 
+new_conn <- DBI::dbConnect(RSQLite::SQLite(),
+                           dbname="Data/New_Rating_Survey_KP.db") 
+#write the modified loaded_db to a new database  
+dbWriteTable(conn=new_conn, 
+             name="Movie_Rating",value = loaded_df,
+             overwrite=TRUE) 
+#close the connection  
+dbDisconnect(new_conn)
+```
+
+## 
