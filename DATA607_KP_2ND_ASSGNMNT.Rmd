@@ -34,7 +34,7 @@ I get the idea of how to check the packages from this link: [check for Packages]
 
 ## Code chunk for preperation
 
-```{r R_setup, echo=FALSE}
+```{r R_setup, echo=TRUE}
 #Load the required package and ensure they are installed
 #install.packages("RSQLite",repos='http://cran.us.r-project.org')
 #This code below check if the needed packages are isntalled or not and if not, will instal them. 
@@ -89,7 +89,7 @@ The format of this data shown above is not appropriate for SQL, since in SQL we 
 
 For creating the database, I used SQLite DB Browser. I used the “Six_Person_Six_Movie_Rating.csv” file to import the data. After importing the data, I saved the database with the same name for the following code to be imported. I was not able to use MySQL or pgAdmin to do this and I am still working to learn them.
 
-```{r Connect_2_DB, echo=FALSE}
+```{r Connect_2_DB, echo=TRUE}
 #let's first conenct to the database I want to created 
 #I will use dbConnect form DBI 
 db_rating <- DBI::dbConnect(RSQLite::SQLite(),
@@ -144,7 +144,7 @@ In this section of this code, I will focus on handling missing data. I will use 
 
 The first thing I would do is plot a bar chart of the average rating of movies.
 
-```{r plot_and_summarize, echo=FALSE}
+```{r plot_and_summarize, echo=TRUE}
 #change the rating from charcter to number to be able to use summarize
 loaded_df$Rating_num <- as.numeric(loaded_df$Rating)
 
@@ -177,7 +177,7 @@ par(las=2)
 
 In this section of the code, I would like to test handling of the lack of data. Using summarize above I have shown a quick example, but in this section I will try to use SQL code. I have not learned it yet, and I do not trust my work.
 
-```{r hanling_data, echo=FALSE}
+```{r hanling_data, echo=TRUE}
 
 # use the data, to see which movie has been seen the most. Report a table and sort movies up down. 
 sort_table <- loaded_df|> group_by(Movie)|>summarize(Movie_count=sum(!is.na(Rating)))
@@ -189,7 +189,7 @@ sort_table [order(-sort_table$Movie_count),]
 
 Now that the data is modified, I use the same code above to store the modified file.
 
-```{r save_modified_file, echo=FALSE}
+```{r save_modified_file, echo=TRUE}
 #Open a new connenction to store a new file if needed 
 new_conn <- DBI::dbConnect(RSQLite::SQLite(),
                            dbname="Data/New_Rating_Survey_KP.db") 
